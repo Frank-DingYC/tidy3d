@@ -8,7 +8,6 @@ from typing import Any, Callable, Dict, Union
 import numpy as np
 import pydantic.v1 as pd
 import xarray as xr
-
 from ...constants import PICOSECOND_PER_NANOMETER_PER_KILOMETER
 from ...exceptions import DataError
 from ...log import log
