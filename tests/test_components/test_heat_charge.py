@@ -169,7 +169,19 @@ def monitors():
         center=(0, 0.9, 0), size=(1.6, 0, 3), name="v_empty", unstructured=True, conformal=False
     )
 
-    return [temp_mnt1, temp_mnt2, temp_mnt3, temp_mnt4, volt_mnt1, volt_mnt2, volt_mnt3, volt_mnt4]
+    capacitance_mnt1 = td.SteadyCapacitanceMonitor(size=(1.6, 2, 3), name="c_test")
+
+    return [
+        temp_mnt1,
+        temp_mnt2,
+        temp_mnt3,
+        temp_mnt4,
+        volt_mnt1,
+        volt_mnt2,
+        volt_mnt3,
+        volt_mnt4,
+        capacitance_mnt1,
+    ]
 
 
 @pytest.fixture(scope="module")
@@ -321,7 +333,7 @@ def temperature_monitor_data(monitors):
 @pytest.fixture(scope="module")
 def voltage_monitor_data(monitors):
     """Creates different voltage monitor data."""
-    _, _, _, _, volt_mnt1, volt_mnt2, volt_mnt3, volt_mnt4 = monitors
+    _, _, _, _, volt_mnt1, volt_mnt2, volt_mnt3, volt_mnt4, _ = monitors
 
     # SpatialDataArray
     nx, ny, nz = 9, 6, 5
@@ -389,6 +401,18 @@ def voltage_monitor_data(monitors):
     mnt_data4 = td.SteadyPotentialData(monitor=volt_mnt4, potential=None)
 
     return (mnt_data1, mnt_data2, mnt_data3, mnt_data4)
+
+
+@pytest.fixture(scope="module")
+def capacitance_monitor_data(monitors):
+    """Creates different voltage monitor data."""
+    _, _, _, _, _, _, _, _, cap_mt1 = monitors
+
+    # SpatialDataArray
+    cap_data1 = td.SteadyCapacitanceData(monitor=cap_mt1, name="cap_data1")
+    cap_data2 = cap_data1.copy()
+
+    return cap_data1, cap_data2
 
 
 @pytest.fixture(scope="module")
