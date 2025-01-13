@@ -99,7 +99,7 @@ class SteadyFreeCarrierData(HeatChargeMonitorData):
         description=r"Contains the computed electrons concentration $n$.",
         discriminator=TYPE_TAG_STR,
     )
-    electrons = n
+    # electrons = n
 
     p: UnstructuredFieldType = pd.Field(
         None,
@@ -107,7 +107,7 @@ class SteadyFreeCarrierData(HeatChargeMonitorData):
         description=r"Contains the computed holes concentration $p$.",
         discriminator=TYPE_TAG_STR,
     )
-    holes = p
+    # holes = p
 
     @property
     def field_components(self) -> Dict[str, DataArray]:
@@ -196,14 +196,14 @@ class SteadyCapacitanceData(HeatChargeMonitorData):
         title="Hole capacitance",
         description=r"Small signal capacitance ($\frac{dQ_p}{dV}$) associated to the monitor.",
     )
-    hole_capacitance = C_p
+    # hole_capacitance = C_p
 
     C_n: SteadyCapacitanceVoltageDataArray = pd.Field(
         None,
         title="Electron capacitance",
         description=r"Small signal capacitance ($\frac{dQn}{dV}$) associated to the monitor.",
     )
-    electron_capacitance = C_n
+    #  electron_capacitance = C_n
 
     @pd.validator("C_p", always=True)
     @skip_if_fields_missing(["monitor"])
