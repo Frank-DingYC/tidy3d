@@ -331,7 +331,9 @@ def temperature_monitor_data(monitors):
     mnt_data4 = td.TemperatureData(monitor=temp_mnt4, temperature=None)
 
     default_field_name = mnt_data3.field_name()
+    target_field_name = mnt_data3.field_name("abs^2")
     assert default_field_name is not None
+    assert target_field_name is not None
 
     return (mnt_data1, mnt_data2, mnt_data3, mnt_data4)
 
