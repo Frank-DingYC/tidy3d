@@ -83,8 +83,12 @@ class SteadyPotentialData(HeatChargeMonitorData):
 class SteadyFreeCarrierData(HeatChargeMonitorData):
     """
     This data class stores free-carrier concentration in charge simulations.
-    This data contains the carrier concentrations: the amount of electrons and holes per unit volume as defined in the
-    ``monitor``.
+
+    Notes
+    -----
+
+        This data contains the carrier concentrations: the amount of electrons and holes per unit volume as defined in the
+        ``monitor``.
     """
 
     monitor: SteadyFreeCarrierMonitor = pd.Field(
