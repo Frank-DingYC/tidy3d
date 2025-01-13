@@ -332,7 +332,7 @@ def current_voltage_simulation(mediums, structures, boundary_conditions, monitor
 
     # Pick a voltage monitor and a free carrier monitor
     # e.g., monitors[5] -> 'volt_mnt2', monitors[9] -> 'free_carrier_mnt1'
-    volt_monitor = monitors[5]
+    volt_monitor = monitors[4]
     free_carrier_monitor = monitors[9]
     chosen_monitors = [volt_monitor, free_carrier_monitor]
 
@@ -543,6 +543,8 @@ def simulation_data(
     current_voltage_simulation,
     temperature_monitor_data,
     voltage_monitor_data,
+    capacitance_monitor_data,
+    free_carrier_monitor_data,
 ):
     """Creates 'HeatChargeSimulationData' for both HEAT and CONDUCTION simulations."""
     heat_sim_data = td.HeatChargeSimulationData(
@@ -557,12 +559,12 @@ def simulation_data(
 
     voltage_capacitance_sim_data = td.HeatChargeSimulationData(
         simulation=voltage_capacitance_simulation,
-        data=capacitance_monitor_data,
+        data=(capacitance_monitor_data[0], voltage_monitor_data[0]),
     )
 
     current_voltage_sim_data = td.HeatChargeSimulationData(
         simulation=current_voltage_simulation,
-        data=free_carrier_monitor_data,
+        data=(voltage_monitor_data[0], free_carrier_monitor_data[0]),
     )
 
     return [heat_sim_data, cond_sim_data, voltage_capacitance_sim_data, current_voltage_sim_data]
