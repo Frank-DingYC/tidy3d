@@ -169,7 +169,9 @@ def monitors():
         center=(0, 0.9, 0), size=(1.6, 0, 3), name="v_empty", unstructured=True, conformal=False
     )
 
-    capacitance_mnt1 = td.SteadyCapacitanceMonitor(size=(1.6, 2, 3), name="c_test")
+    capacitance_mnt1 = td.SteadyCapacitanceMonitor(size=(1.6, 2, 3), name="cmnt_test")
+
+    free_carrier_mnt1 = td.SteadyFreeCarrierMonitor(size=(1.6, 2, 3), name="carrier_test")
 
     return [
         temp_mnt1,
@@ -181,6 +183,7 @@ def monitors():
         volt_mnt3,
         volt_mnt4,
         capacitance_mnt1,
+        free_carrier_mnt1,
     ]
 
 
@@ -333,7 +336,7 @@ def temperature_monitor_data(monitors):
 @pytest.fixture(scope="module")
 def voltage_monitor_data(monitors):
     """Creates different voltage monitor data."""
-    _, _, _, _, volt_mnt1, volt_mnt2, volt_mnt3, volt_mnt4, _ = monitors
+    _, _, _, _, volt_mnt1, volt_mnt2, volt_mnt3, volt_mnt4, _, _ = monitors
 
     # SpatialDataArray
     nx, ny, nz = 9, 6, 5
@@ -406,13 +409,31 @@ def voltage_monitor_data(monitors):
 @pytest.fixture(scope="module")
 def capacitance_monitor_data(monitors):
     """Creates different voltage monitor data."""
-    _, _, _, _, _, _, _, _, cap_mt1 = monitors
+    _, _, _, _, _, _, _, _, cap_mt1, _ = monitors
 
     # SpatialDataArray
-    cap_data1 = td.SteadyCapacitanceData(monitor=cap_mt1, name="cap_data1")
-    cap_data2 = cap_data1.copy()
+    cap_data1 = td.SteadyCapacitanceData(monitor=cap_mt1)
+    cap_data2 = cap_data1.symmetry_expanded_copy
 
     return cap_data1, cap_data2
+
+
+@pytest.fixture(scope="module")
+def free_carrier_monitor_data(monitors):
+    """Creates different voltage monitor data."""
+    _, _, _, _, _, _, _, _, _, _, fc_mnt = monitors
+
+    # SpatialDataArray
+    fc_data1 = td.SteadyFreeCarrierData(monitor=fc_mnt)
+    fc_data2 = fc_data1.copy()
+
+    field_components = fc_data1.field_components
+
+    fc_fields = fc_data1.field_name()
+
+    assert field_components is not None
+
+    return fc_data1, fc_data2
 
 
 @pytest.fixture(scope="module")
@@ -536,11 +557,13 @@ def test_monitor_crosses_medium(mediums, structures, heat_simulation, conduction
         )
 
 
-def test_heat_charge_mnt_data(temperature_monitor_data, voltage_monitor_data):
+def test_heat_charge_mnt_data(
+    temperature_monitor_data, voltage_monitor_data, capacitance_monitor_data
+):
     """Tests whether different heat-charge monitor data can be created."""
     assert len(temperature_monitor_data) == 4, "Expected 4 temperature monitor data entries."
     assert len(voltage_monitor_data) == 4, "Expected 4 voltage monitor data entries."
-    # Additional assertions can be added here if necessary
+    assert len(capacitance_monitor_data) == 2
 
 
 def test_grid_spec_validation(grid_specs):
