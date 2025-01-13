@@ -91,9 +91,6 @@ class GaussianDoping(AbstractDopingBox):
     as source) and the center of the box (``width`` away from the box sides) will have a concentration
     :math:`N_{\\text{max}`.
 
-
-    TODO can we do better parameter names here more related to the equations? TODO how does the size get defined.
-
     .. math::
 
         N = \\{N_{\\text{max}}\\} \\exp \\left[
