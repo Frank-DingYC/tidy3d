@@ -261,6 +261,96 @@ def conduction_simulation(mediums, structures, boundary_conditions, monitors, gr
 
 
 @pytest.fixture(scope="module")
+def voltage_capacitance_simulation(mediums, structures, boundary_conditions, monitors, grid_specs):
+    """
+    Creates a HeatChargeSimulation that focuses on voltage sweeping (for capacitance).
+    Specifically, we define a voltage BC with multiple voltage values (an array)
+    so that 'SteadyCapacitanceMonitor' can compute capacitance over this array.
+    """
+    # We will define our own VoltageBC with an array of voltages for the sweep
+    voltage_bc_array = td.VoltageBC(
+        source=td.DCVoltageSource(voltage=[0.0, 1.0, 2.0]),
+    )
+
+    # For illustration, we can reuse the insulator structure as background (like conduction).
+    # Suppose we want to set the voltage array at the simulation boundary
+    pl6 = td.HeatChargeBoundarySpec(
+        condition=voltage_bc_array,
+        placement=td.SimulationBoundary(),
+    )
+
+    # We can optionally define a second boundary condition if desired, e.g. an insulating BC:
+    bc_insulating = td.InsulatingBC()
+    pl7 = td.HeatChargeBoundarySpec(
+        condition=bc_insulating,
+        placement=td.StructureBoundary(structure="solid_structure"),
+    )
+
+    # Let’s pick a couple of monitors. We'll definitely include the CapacitanceMonitor
+    # (monitors[8] -> 'cap_mt1') so that we can measure capacitance. We can also include
+    # a potential monitor to see the fields, e.g. monitors[4] -> volt_mnt1 for demonstration.
+    cap_monitor = monitors[8]  # 'capacitance_mnt1'
+    volt_monitor = monitors[4]  # 'volt_mnt1'
+    chosen_monitors = [cap_monitor, volt_monitor]
+
+    # Build a new HeatChargeSimulation
+    voltage_cap_sim = td.HeatChargeSimulation(
+        medium=mediums["insulator_medium"],
+        structures=[structures["insulator_structure"], structures["solid_structure"]],
+        center=(0, 0, 0),
+        size=(2, 2, 2),
+        boundary_spec=[pl6, pl7],
+        grid_spec=grid_specs["uniform"],
+        sources=[],
+        monitors=chosen_monitors,
+    )
+
+    return voltage_cap_sim
+
+
+@pytest.fixture(scope="module")
+def current_voltage_simulation(mediums, structures, boundary_conditions, monitors, grid_specs):
+    """
+    Creates a HeatChargeSimulation for a scenario combining a current BC and a voltage BC.
+    This can be used to measure conduction properties and free carriers with different
+    monitors, e.g. potential monitors and free carrier monitors.
+    """
+    # We'll reuse bc_volt=boundary_conditions[3] and bc_current=boundary_conditions[4]
+    bc_volt = boundary_conditions[3]  # VoltageBC(source=td.DCVoltageSource(voltage=[1]))
+    bc_current = boundary_conditions[4]  # CurrentBC(source=td.DCCurrentSource(current=3e-1))
+
+    # Place the voltage BC at the simulation boundary
+    pl6 = td.HeatChargeBoundarySpec(
+        condition=bc_volt,
+        placement=td.SimulationBoundary(),
+    )
+    # Place the current BC at the boundary of the "insulator_structure" (arbitrary choice here)
+    pl7 = td.HeatChargeBoundarySpec(
+        condition=bc_current,
+        placement=td.StructureBoundary(structure="insulator_structure"),
+    )
+
+    # Pick a voltage monitor and a free carrier monitor
+    # e.g., monitors[5] -> 'volt_mnt2', monitors[9] -> 'free_carrier_mnt1'
+    volt_monitor = monitors[5]
+    free_carrier_monitor = monitors[9]
+    chosen_monitors = [volt_monitor, free_carrier_monitor]
+
+    current_volt_sim = td.HeatChargeSimulation(
+        medium=mediums["insulator_medium"],
+        structures=[structures["insulator_structure"], structures["solid_structure"]],
+        center=(0, 0, 0),
+        size=(2, 2, 2),
+        boundary_spec=[pl6, pl7],
+        grid_spec=grid_specs["uniform"],
+        sources=[],
+        monitors=chosen_monitors,
+    )
+
+    return current_volt_sim
+
+
+@pytest.fixture(scope="module")
 def temperature_monitor_data(monitors):
     """Creates different temperature monitor data."""
     temp_mnt1, temp_mnt2, temp_mnt3, temp_mnt4, *_ = monitors
@@ -420,7 +510,7 @@ def capacitance_monitor_data(monitors):
     cap_data1 = td.SteadyCapacitanceData(monitor=cap_mt1)
     cap_data2 = cap_data1.symmetry_expanded_copy
 
-    return cap_data1, cap_data2
+    return (cap_data1,)
 
 
 @pytest.fixture(scope="module")
@@ -430,26 +520,29 @@ def free_carrier_monitor_data(monitors):
 
     # SpatialDataArray
     fc_data1 = td.SteadyFreeCarrierData(monitor=fc_mnt)
-    fc_data2 = fc_data1.copy()
+    fc_data2 = fc_data1.symmetry_expanded_copy
+    assert fc_data2 is not None
 
     field_components = fc_data1.field_components
 
     fc_fields = fc_data1.field_name("abs^2")
+    assert fc_fields is not None
     fc_fields_default = fc_data1.field_name()
+    assert fc_fields_default is not None
 
     assert field_components is not None
 
-    return fc_data1, fc_data2
+    return (fc_data1,)
 
 
 @pytest.fixture(scope="module")
 def simulation_data(
     heat_simulation,
     conduction_simulation,
+    voltage_capacitance_simulation,
+    current_voltage_simulation,
     temperature_monitor_data,
     voltage_monitor_data,
-    capacitance_monitor_data,
-    free_carrier_monitor_data,
 ):
     """Creates 'HeatChargeSimulationData' for both HEAT and CONDUCTION simulations."""
     heat_sim_data = td.HeatChargeSimulationData(
@@ -463,13 +556,13 @@ def simulation_data(
     )
 
     voltage_capacitance_sim_data = td.HeatChargeSimulationData(
-        simulation=conduction_simulation,
-        data=[capacitance_monitor_data, voltage_monitor_data],
+        simulation=voltage_capacitance_simulation,
+        data=capacitance_monitor_data,
     )
 
     current_voltage_sim_data = td.HeatChargeSimulationData(
-        simulation=conduction_simulation,
-        data=[voltage_monitor_data, free_carrier_monitor_data],
+        simulation=current_voltage_simulation,
+        data=free_carrier_monitor_data,
     )
 
     return [heat_sim_data, cond_sim_data, voltage_capacitance_sim_data, current_voltage_sim_data]
@@ -584,7 +677,6 @@ def test_heat_charge_mnt_data(
     """Tests whether different heat-charge monitor data can be created."""
     assert len(temperature_monitor_data) == 4, "Expected 4 temperature monitor data entries."
     assert len(voltage_monitor_data) == 4, "Expected 4 voltage monitor data entries."
-    assert len(capacitance_monitor_data) == 2
 
 
 def test_grid_spec_validation(grid_specs):
@@ -623,7 +715,9 @@ def test_heat_charge_sources(log_capture, structures):
 
 def test_heat_charge_simulation(simulation_data):
     """Tests 'HeatChargeSimulation' and 'ConductionSimulation' objects."""
-    heat_sim_data, cond_sim_data = simulation_data
+    heat_sim_data, cond_sim_data, voltage_capacitance_sim_data, current_voltage_simulation_data = (
+        simulation_data
+    )
 
     # Test Heat Simulation
     heat_sim = heat_sim_data.simulation
@@ -632,6 +726,16 @@ def test_heat_charge_simulation(simulation_data):
     # Test Conduction Simulation
     cond_sim = cond_sim_data.simulation
     assert cond_sim is not None, "Conduction simulation should be created successfully."
+
+    voltage_capacitance_sim = voltage_capacitance_sim_data.simulation
+    assert (
+        voltage_capacitance_sim is not None
+    ), "Voltage-Capacitance simulation should be created successfully."
+
+    current_voltage_sim = current_voltage_simulation_data.simulation
+    assert (
+        current_voltage_sim is not None
+    ), "Current-Voltage simulation should be created successfully."
 
 
 def test_sim_data_plotting(simulation_data):
