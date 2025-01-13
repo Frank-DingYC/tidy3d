@@ -93,7 +93,7 @@ class SteadyFreeCarrierData(HeatChargeMonitorData):
         description="Free carrier data associated with a Charge simulation.",
     )
 
-    n: UnstructuredFieldType = pd.Field(
+    electrons: UnstructuredFieldType = pd.Field(
         None,
         title="Electrons series",
         description=r"Contains the computed electrons concentration $n$.",
@@ -101,7 +101,7 @@ class SteadyFreeCarrierData(HeatChargeMonitorData):
     )
     # electrons = n
 
-    p: UnstructuredFieldType = pd.Field(
+    holes: UnstructuredFieldType = pd.Field(
         None,
         title="Holes series",
         description=r"Contains the computed holes concentration $p$.",
@@ -112,14 +112,14 @@ class SteadyFreeCarrierData(HeatChargeMonitorData):
     @property
     def field_components(self) -> Dict[str, DataArray]:
         """Maps the field components to their associated data."""
-        return dict(n=self.n, p=self.p)
+        return dict(electrons=self.electrons, holes=self.holes)
 
     @pd.root_validator(skip_on_failure=True)
     def check_correct_data_type(cls, values):
         """Issue error if incorrect data type is used"""
 
         mnt = values.get("monitor")
-        field_data = {field: values.get(field) for field in ["n", "p"]}
+        field_data = {field: values.get(field) for field in ["electrons", "holes"]}
 
         for field, data in field_data.items():
             if isinstance(data, TetrahedralGridDataset) or isinstance(data, TriangularGridDataset):
@@ -136,10 +136,10 @@ class SteadyFreeCarrierData(HeatChargeMonitorData):
         """Warn if no data provided."""
 
         mnt = values.get("monitor")
-        n = values.get("n")
-        p = values.get("p")
+        electrons = values.get("electrons")
+        holes = values.get("holes")
 
-        if n is None or p is None:
+        if electrons is None or holes is None:
             log.warning(
                 f"No data is available for monitor '{mnt.name}'. This is typically caused by "
                 "monitor not intersecting any solid medium."
@@ -151,12 +151,12 @@ class SteadyFreeCarrierData(HeatChargeMonitorData):
     def symmetry_expanded_copy(self) -> SteadyFreeCarrierData:
         """Return copy of self with symmetry applied."""
 
-        new_n = self._symmetry_expanded_copy(property=self.n)
-        new_p = self._symmetry_expanded_copy(property=self.p)
+        new_electrons = self._symmetry_expanded_copy(property=self.electrons)
+        new_holes = self._symmetry_expanded_copy(property=self.holes)
 
         return self.updated_copy(
-            n=new_n,
-            p=new_p,
+            electrons=new_electrons,
+            holes=new_holes,
             symmetry=(0, 0, 0),
         )
 
@@ -191,21 +191,21 @@ class SteadyCapacitanceData(HeatChargeMonitorData):
         description="Capacitance data associated with a Charge simulation.",
     )
 
-    C_p: SteadyCapacitanceVoltageDataArray = pd.Field(
+    hole_capacitance: SteadyCapacitanceVoltageDataArray = pd.Field(
         None,
         title="Hole capacitance",
         description=r"Small signal capacitance ($\frac{dQ_p}{dV}$) associated to the monitor.",
     )
     # hole_capacitance = C_p
 
-    C_n: SteadyCapacitanceVoltageDataArray = pd.Field(
+    electron_capacitance: SteadyCapacitanceVoltageDataArray = pd.Field(
         None,
         title="Electron capacitance",
         description=r"Small signal capacitance ($\frac{dQn}{dV}$) associated to the monitor.",
     )
     #  electron_capacitance = C_n
 
-    @pd.validator("C_p", always=True)
+    @pd.validator("hole_capacitance", always=True)
     @skip_if_fields_missing(["monitor"])
     def warn_no_data(cls, val, values):
         """Warn if no data provided."""
