@@ -426,7 +426,7 @@ def capacitance_monitor_data(monitors):
 @pytest.fixture(scope="module")
 def free_carrier_monitor_data(monitors):
     """Creates different voltage monitor data."""
-    _, _, _, _, _, _, _, _, _, _, fc_mnt = monitors
+    _, _, _, _, _, _, _, _, _, fc_mnt = monitors
 
     # SpatialDataArray
     fc_data1 = td.SteadyFreeCarrierData(monitor=fc_mnt)
@@ -444,7 +444,12 @@ def free_carrier_monitor_data(monitors):
 
 @pytest.fixture(scope="module")
 def simulation_data(
-    heat_simulation, conduction_simulation, temperature_monitor_data, voltage_monitor_data
+    heat_simulation,
+    conduction_simulation,
+    temperature_monitor_data,
+    voltage_monitor_data,
+    capacitance_monitor_data,
+    free_carrier_monitor_data,
 ):
     """Creates 'HeatChargeSimulationData' for both HEAT and CONDUCTION simulations."""
     heat_sim_data = td.HeatChargeSimulationData(
@@ -457,7 +462,17 @@ def simulation_data(
         data=voltage_monitor_data,
     )
 
-    return [heat_sim_data, cond_sim_data]
+    voltage_capacitance_sim_data = td.HeatChargeSimulationData(
+        simulation=conduction_simulation,
+        data=[capacitance_monitor_data, voltage_monitor_data],
+    )
+
+    current_voltage_sim_data = td.HeatChargeSimulationData(
+        simulation=conduction_simulation,
+        data=[voltage_monitor_data, free_carrier_monitor_data],
+    )
+
+    return [heat_sim_data, cond_sim_data, voltage_capacitance_sim_data, current_voltage_sim_data]
 
 
 # --------------------------
@@ -621,7 +636,7 @@ def test_heat_charge_simulation(simulation_data):
 
 def test_sim_data_plotting(simulation_data):
     """Tests whether simulation data can be plotted and appropriate errors are raised."""
-    heat_sim_data, cond_sim_data = simulation_data
+    heat_sim_data, cond_sim_data, cap_sim_data, fc_sim_data = simulation_data
 
     # Plotting temperature data
     heat_sim_data.plot_field("test", z=0)
@@ -918,3 +933,67 @@ def test_sim_structure_extent(box_size, log_level, log_capture):
     )
 
     assert_log_level(log_capture, log_level)
+
+
+def test_abstract_doping_box_default_size_and_center():
+    """Test default size and center for AbstractDopingBox."""
+    box = td.ConstantDoping()
+    assert box.size == (1, 1, 1), "Default size should be (1, 1, 1)."
+    assert box.center == (0, 0, 0), "Default center should be (0, 0, 0)."
+
+
+def test_abstract_doping_box_with_box_coords():
+    """Test AbstractDopingBox with provided box_coords."""
+    box_coords = ((-1, -1, -1), (1, 1, 1))
+    box = td.ConstantDoping(box_coords=box_coords)
+    assert box.size == (2, 2, 2), "Size should be calculated based on box_coords."
+    assert box.center == (0, 0, 0), "Center should be calculated based on box_coords."
+
+
+def test_constant_doping_initialization():
+    """Test initialization of ConstantDoping."""
+    box = td.ConstantDoping(concentration=1e18)
+    assert box.concentration == 1e18, "Concentration should be set to 1e18."
+
+
+def test_gaussian_doping_initialization():
+    """Test initialization of GaussianDoping."""
+    box = td.GaussianDoping(ref_con=1e15, concentration=1e18, width=0.1, source="xmin")
+    assert box.ref_con == 1e15, "Reference concentration should be 1e15."
+    assert box.concentration == 1e18, "Concentration should be 1e18."
+    assert box.width == 0.1, "Width should be 0.1."
+    assert box.source == "xmin", "Source should be 'xmin'."
+
+
+def test_gaussian_doping_sigma_calculation():
+    """Test sigma calculation in GaussianDoping."""
+    box = td.GaussianDoping(ref_con=1e15, concentration=1e18, width=0.1, source="xmin")
+    expected_sigma = np.sqrt(-(0.1**2) / (2 * np.log(1e15 / 1e18)))
+    assert np.isclose(box.sigma, expected_sigma), "Sigma calculation is incorrect."
+
+
+def test_gaussian_doping_get_contrib():
+    """Test get_contrib method in GaussianDoping."""
+    box = td.GaussianDoping(ref_con=1e15, concentration=1e18, width=0.1, source="xmin")
+    coords = {"x": [0], "y": [0], "z": [0]}
+    contrib = box.get_contrib(coords)
+
+
+def test_gaussian_doping_get_contrib_2d_coords():
+    """Test get_contrib method in GaussianDoping with 2D coordinates."""
+    box = td.GaussianDoping(ref_con=1e15, concentration=1e18, width=0.1, source="xmin")
+    coords = {"x": [0], "y": [0], "z": [-0.5, 0, 0.5]}
+    contrib = box.get_contrib(coords)
+
+
+def test_gaussian_doping_bounds_behavior():
+    """Test GaussianDoping bounds behavior."""
+    box_coords = ((-1, -1, -1), (1, 1, 1))
+    box = td.GaussianDoping(
+        box_coords=box_coords,
+        ref_con=1e15,
+        concentration=1e18,
+        width=0.1,
+        source="xmin",
+    )
+    assert box.bounds == box_coords, "Bounds should match provided box_coords."
