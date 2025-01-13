@@ -6,6 +6,7 @@ from typing import Dict, Literal, Union
 
 import numpy as np
 import pydantic.v1 as pd
+
 try:
     from matplotlib import pyplot as plt
     from matplotlib.tri import Triangulation
