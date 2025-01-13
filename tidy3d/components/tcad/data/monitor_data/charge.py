@@ -205,7 +205,7 @@ class SteadyCapacitanceData(HeatChargeMonitorData):
     )
     electron_capacitance = C_n
 
-    @pd.validator("hole_capacitance", always=True)
+    @pd.validator("C_p", always=True)
     @skip_if_fields_missing(["monitor"])
     def warn_no_data(cls, val, values):
         """Warn if no data provided."""
