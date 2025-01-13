@@ -1103,3 +1103,155 @@ def test_gaussian_doping_bounds_behavior():
         source="xmin",
     )
     assert box.bounds == box_coords, "Bounds should match provided box_coords."
+
+
+def test_edge_case_boundary_conditions():
+    """Test boundary conditions with extreme values."""
+    # Zero heat flux
+    bc_zero_flux = td.HeatFluxBC(flux=0)
+    assert bc_zero_flux.flux == 0
+
+    # Negative heat flux
+    bc_neg_flux = td.HeatFluxBC(flux=-10)
+    assert bc_neg_flux.flux == -10
+
+
+def test_simulation_initialization_invalid_parameters(
+    mediums, structures, boundary_conditions, monitors, grid_specs
+):
+    """Test simulation initialization with invalid parameters."""
+    # Invalid simulation size
+    with pytest.raises(pd.ValidationError):
+        td.HeatChargeSimulation(
+            medium=mediums["fluid_medium"],
+            structures=[structures["fluid_structure"]],
+            center=(0, 0, 0),
+            size=(-1, 2, 2),  # Negative size
+            boundary_spec=[],
+            grid_spec=grid_specs["uniform"],
+            sources=[],
+            monitors=[],
+        )
+
+    # Invalid monitor type
+    with pytest.raises(pd.ValidationError):
+        td.HeatChargeSimulation(
+            medium=mediums["fluid_medium"],
+            structures=[structures["fluid_structure"]],
+            center=(0, 0, 0),
+            size=(2, 2, 2),
+            boundary_spec=[],
+            grid_spec=grid_specs["uniform"],
+            sources=[],
+            monitors=["invalid_monitor"],  # Should be monitor objects
+        )
+
+
+def test_simulation_with_multiple_sources_and_monitors(
+    mediums, structures, boundary_conditions, grid_specs
+):
+    """Test simulation with multiple heat sources and monitors."""
+    sources = [
+        td.HeatSource(structures=["solid_structure"], rate=100),
+        td.HeatSource(structures=["fluid_structure"], rate=200),
+    ]
+
+    monitors = [
+        td.TemperatureMonitor(size=(1.6, 2, 3), name="temp_mnt1"),
+        td.SteadyPotentialMonitor(size=(1.6, 2, 3), name="volt_mnt1"),
+    ]
+
+    boundary_spec = [
+        td.HeatChargeBoundarySpec(
+            condition=boundary_conditions[0],  # TemperatureBC
+            placement=td.SimulationBoundary(),
+        ),
+        td.HeatChargeBoundarySpec(
+            condition=boundary_conditions[1],  # HeatFluxBC
+            placement=td.StructureBoundary(structure="solid_structure"),
+        ),
+    ]
+
+    sim = td.HeatChargeSimulation(
+        medium=mediums["solid_medium"],
+        structures=[structures["solid_structure"], structures["fluid_structure"]],
+        center=(0, 0, 0),
+        size=(2, 2, 2),
+        boundary_spec=boundary_spec,
+        grid_spec=grid_specs["uniform"],
+        sources=sources,
+        monitors=monitors,
+    )
+
+    assert len(sim.sources) == 2
+    assert len(sim.monitors) == 2
+
+
+def test_dynamic_simulation_updates(heat_simulation):
+    """Test updating simulation parameters after initialization."""
+    # Update simulation size
+    new_size = (3, 3, 3)
+    updated_sim = heat_simulation.updated_copy(size=new_size)
+    assert updated_sim.size == new_size
+
+    # Update center
+    new_center = (1, 1, 1)
+    updated_sim = heat_simulation.updated_copy(center=new_center)
+    assert updated_sim.center == new_center
+
+    # Add a new monitor
+    new_monitor = td.TemperatureMonitor(size=(1, 1, 1), name="new_temp_mnt")
+    updated_sim = heat_simulation.updated_copy(
+        monitors=tuple(list(heat_simulation.monitors) + [new_monitor])
+    )
+    assert len(updated_sim.monitors) == len(heat_simulation.monitors) + 1
+    assert updated_sim.monitors[-1].name == "new_temp_mnt"
+
+
+def test_plotting_functions(simulation_data):
+    """Test plotting functions with various data."""
+    heat_sim_data, cond_sim_data, cap_sim_data, fc_sim_data = simulation_data
+
+    # Valid plotting
+    try:
+        heat_sim_data.plot_field("test", z=0)
+        cond_sim_data.plot_field("v_test", y=1)
+    except Exception as e:
+        pytest.fail(f"Plotting raised an exception unexpectedly: {e}")
+
+    # Invalid field name
+    with pytest.raises(KeyError):
+        heat_sim_data.plot_field("non_existent_field")
+
+    # Invalid plotting parameters
+    with pytest.raises(KeyError):
+        heat_sim_data.plot_field("test", invalid_param=0)
+
+
+def test_additional_edge_cases():
+    """Test additional edge cases and error handling."""
+    # Attempt to create a monitor with zero size
+    td.TemperatureMonitor(size=(0, 0, 0), name="zero_size_mnt")
+
+    # Create a simulation with overlapping structures
+    td.HeatChargeSimulation(
+        medium=td.MultiPhysicsMedium(
+            optical=td.Medium(permittivity=5),
+            charge=td.ChargeConductorMedium(conductivity=1),
+            name="overlap_medium",
+        ),
+        structures=[
+            td.Structure(
+                geometry=td.Box(center=(0, 0, 0), size=(1, 1, 1)), medium=td.Medium(name="medium1")
+            ),
+            td.Structure(
+                geometry=td.Box(center=(0, 0, 0), size=(1, 1, 1)), medium=td.Medium(name="medium2")
+            ),
+        ],
+        center=(0, 0, 0),
+        size=(2, 2, 2),
+        boundary_spec=[],
+        grid_spec=td.UniformUnstructuredGrid(dl=0.1),
+        sources=[],
+        monitors=[],
+    )
