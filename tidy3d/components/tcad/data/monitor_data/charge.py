@@ -164,7 +164,7 @@ class SteadyFreeCarrierData(HeatChargeMonitorData):
             symmetry=(0, 0, 0),
         )
 
-    def field_name(self, val: str) -> str:
+    def field_name(self, val: str = "") -> str:
         """Gets the name of the fields to be plot."""
         if val == "abs^2":
             return "Electrons², Holes²"
