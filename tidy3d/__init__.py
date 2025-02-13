@@ -331,6 +331,7 @@ from .components.structure import MeshOverrideStructure, Structure
 
 # subpixel
 from .components.subpixel_spec import (
+    ContourPathAveraging,
     HeuristicPECStaircasing,
     PECConformal,
     PolarizedAveraging,
@@ -623,6 +624,7 @@ __all__ = [
     "Staircasing",
     "VolumetricAveraging",
     "PolarizedAveraging",
+    "ContourPathAveraging",
     "HeuristicPECStaircasing",
     "PECConformal",
     "SurfaceImpedance",
