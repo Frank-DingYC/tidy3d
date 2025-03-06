@@ -61,6 +61,15 @@ def is_valid_for_autograd(simulation: td.Simulation) -> bool:
     if not traced_fields:
         return False
 
+    # if no frequency-domain data (e.g. only field time monitors), raise an error
+    if not simulation.freqs_adjoint:
+        msg = (
+            "No frequency-domain data found in simulation, but found traced structures. "
+            "For an autograd run, you must have at least one frequency-domain monitor."
+        )
+        td.log.error(msg)
+        raise ValueError(msg)
+
     # if too many structures, raise an error
     structure_indices = {i for key, i, *_ in traced_fields.keys() if key == "structures"}
     num_traced_structures = len(structure_indices)
@@ -435,7 +444,6 @@ def _run_primitive(
             sim_original=sim_original,
             aux_data=aux_data,
         )
-
     else:
         sim_combined.validate_pre_upload()
         sim_original = sim_original.updated_copy(simulation_type="autograd_fwd", deep=False)
@@ -469,17 +477,17 @@ def _run_async_primitive(
 ) -> dict[str, AutogradFieldMap]:
     task_names = sim_fields_dict.keys()
 
-    if local_gradient:
-        sims_combined = {}
-        for task_name in task_names:
-            sim_fields = sim_fields_dict[task_name]
-            sim_original = sims_original[task_name]
-            sims_combined[task_name] = setup_fwd(
-                sim_fields=sim_fields,
-                sim_original=sim_original,
-                local_gradient=local_gradient,
-            )
+    sims_combined = {}
+    for task_name in task_names:
+        sim_fields = sim_fields_dict[task_name]
+        sim_original = sims_original[task_name]
+        sims_combined[task_name] = setup_fwd(
+            sim_fields=sim_fields,
+            sim_original=sim_original,
+            local_gradient=local_gradient,
+        )
 
+    if local_gradient:
         batch_data_combined, _ = _run_async_tidy3d(sims_combined, **run_async_kwargs)
 
         field_map_fwd_dict = {}
@@ -493,6 +501,8 @@ def _run_async_primitive(
                 aux_data=aux_data,
             )
     else:
+        for sim in sims_combined.values():
+            sim.validate_pre_upload()
         run_async_kwargs["simulation_type"] = "autograd_fwd"
         run_async_kwargs["sim_fields_keys_dict"] = {}
         for task_name, sim_fields in sim_fields_dict.items():
