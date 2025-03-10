@@ -1227,8 +1227,8 @@ class LayerRefinementSpec(Box):
 
     @cached_property
     def _is_inplane_unbounded(self) -> bool:
-        """Whether the layer is unbounded in any of the inplane dimensions."""
-        return np.isinf(self.size[(self.axis + 1) % 3]) or np.isinf(self.size[(self.axis + 2) % 3])
+        """Whether the layer is unbounded in both of the inplane dimensions."""
+        return np.isinf(self.size[(self.axis + 1) % 3]) and np.isinf(self.size[(self.axis + 2) % 3])
 
     def _unpop_axis(self, ax_coord: float, plane_coord: Any) -> CoordinateOptional:
         """Combine coordinate along axis with identical coordinates on the plane tangential to the axis.
