@@ -640,7 +640,7 @@ class UnstructuredGridDataset(Dataset, np.lib.mixins.NDArrayOperatorsMixin, ABC)
         values = values_type(values_numpy, coords=values_coords, name=values_name)
 
         return values
-    
+
     @requires_vtk
     def get_cell_values(
         self,
@@ -652,12 +652,12 @@ class UnstructuredGridDataset(Dataset, np.lib.mixins.NDArrayOperatorsMixin, ABC)
 
         if field is None:
             raise DataError("Field must be provided.")
-        
+
         # determine whether the UnstructuredGridDataset is 2D or 3D
         is_3D = True
         if self._point_dims() == 2:
             is_3D = False
-        
+
         # get the cell values of the field
         p2c = vtk["mod"].vtkPointDataToCellData()
         p2c.SetInputData(self._vtk_obj)
@@ -666,7 +666,7 @@ class UnstructuredGridDataset(Dataset, np.lib.mixins.NDArrayOperatorsMixin, ABC)
         cell_data_array = cell_mesh.GetCellData().GetArray(field)
         if cell_data_array is None:
             raise DataError(f"Field '{field}' does not exist in the VTK object.")
-        
+
         cell_values = vtk["vtk_to_numpy"](cell_data_array)
 
         # now get the volumes of the cells
