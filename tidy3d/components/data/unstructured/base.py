@@ -640,6 +640,50 @@ class UnstructuredGridDataset(Dataset, np.lib.mixins.NDArrayOperatorsMixin, ABC)
         values = values_type(values_numpy, coords=values_coords, name=values_name)
 
         return values
+    
+    @requires_vtk
+    def get_values_at_cell_from_vtk(
+        self,
+        # vtk_obj,
+        field: str = None,
+    ):
+        """For a given field defined by "field", this returns the values 
+        of the field at the cells of the vtk object along with the volumes of each cell.
+        """
+
+        if field is None:
+            raise DataError("Field must be provided.")
+        
+        # determine whether the UnstructuredGridDataset is 2D or 3D
+        is_3D = True
+        if self._point_dims() == 2:
+            is_3D = False
+        
+        # get the cell values of the field
+        p2c = vtk["mod"].vtkPointDataToCellData()
+        p2c.SetInputData(self._vtk_obj)
+        p2c.Update()
+        cell_mesh = p2c.GetOutput()
+        cell_data_array = cell_mesh.GetCellData().GetArray(field)
+        if cell_data_array is None:
+            raise DataError(f"Field '{field}' does not exist in the VTK object.")
+        
+        cell_values = vtk["vtk_to_numpy"](cell_data_array)
+
+        # now get the volumes of the cells
+        mesh_quality = vtk["mod"].vtkMeshQuality()
+        mesh_quality.SetInputData(cell_mesh)
+        if is_3D:
+            mesh_quality.SetTetQualityMeasureToVolume()
+        else:
+            mesh_quality.SetTriangleQualityMeasureToArea()
+        mesh_quality.Update()
+
+        quality_output = mesh_quality.GetOutput()
+        volumes = vtk["vtk_to_numpy"](quality_output.GetCellData().GetArray("Quality"))
+
+        return cell_values, volumes
+
 
     """ Grid operations """
 
