@@ -668,6 +668,7 @@ def test_triangular_dataset_uniform():
     tri_grid = tri_grid.updated_copy(values=tri_grid_values)
     assert not tri_grid.is_uniform
 
+
 def test_cell_values():
     """Test whether the cell values are correctly calculated"""
     import tidy3d as td
@@ -684,9 +685,7 @@ def test_cell_values():
     )
 
     tri_grid_values = td.IndexedDataArray(
-        [0., 0., 3., 3.],
-        coords=dict(index=np.arange(4)),
-        name="test"
+        [0.0, 0.0, 3.0, 3.0], coords=dict(index=np.arange(4)), name="test"
     )
 
     tri_grid = td.TriangularGridDataset(
@@ -700,14 +699,21 @@ def test_cell_values():
     with pytest.raises(ValueError):
         _, _ = tri_grid.get_cell_values(field="bad_field_name")
 
-
     cell_values, cell_vols = tri_grid.get_cell_values(field="test")
     assert np.dot(cell_values, cell_vols) == 1.5
 
     # Now repeat for a tet mesh
     tet_grid_points = td.PointDataArray(
-        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0],
-         [0.0, 0.0, 1.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0], [1.0, 1.0, 1.0]],
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [1.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [1.0, 0.0, 1.0],
+            [0.0, 1.0, 1.0],
+            [1.0, 1.0, 1.0],
+        ],
         dims=("index", "axis"),
     )
 
@@ -717,9 +723,7 @@ def test_cell_values():
     )
 
     tet_grid_values = td.IndexedDataArray(
-        [0., 0., 0., 0., 3., 3., 3., 3.],
-        coords=dict(index=np.arange(8)),
-        name="test_tet"
+        [0.0, 0.0, 0.0, 0.0, 3.0, 3.0, 3.0, 3.0], coords=dict(index=np.arange(8)), name="test_tet"
     )
 
     tet_grid = td.TetrahedralGridDataset(
@@ -730,7 +734,6 @@ def test_cell_values():
 
     with pytest.raises(ValueError):
         _, _ = tet_grid.get_cell_values(field="bad_field_name")
-
 
     cell_values, cell_vols = tet_grid.get_cell_values(field="test_tet")
     assert np.dot(cell_values, cell_vols) == 1.5

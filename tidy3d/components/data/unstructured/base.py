@@ -683,7 +683,6 @@ class UnstructuredGridDataset(Dataset, np.lib.mixins.NDArrayOperatorsMixin, ABC)
 
         return cell_values, volumes
 
-
     """ Grid operations """
 
     @requires_vtk
