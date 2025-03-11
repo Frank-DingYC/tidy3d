@@ -699,7 +699,7 @@ def test_cell_values():
 
     with pytest.raises(ValueError):
         _, _ = tri_grid.get_cell_values(field="bad_field_name")
-    
+
 
     cell_values, cell_vols = tri_grid.get_cell_values(field="test")
     assert np.dot(cell_values, cell_vols) == 1.5
@@ -730,7 +730,7 @@ def test_cell_values():
 
     with pytest.raises(ValueError):
         _, _ = tet_grid.get_cell_values(field="bad_field_name")
-    
+
 
     cell_values, cell_vols = tet_grid.get_cell_values(field="test_tet")
     assert np.dot(cell_values, cell_vols) == 1.5
