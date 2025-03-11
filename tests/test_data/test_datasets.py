@@ -698,10 +698,10 @@ def test_cell_values():
     )
 
     with pytest.raises(ValueError):
-        _, _ = tri_grid.get_values_at_cell_from_vtk(field="bad_field_name")
+        _, _ = tri_grid.get_cell_values(field="bad_field_name")
     
 
-    cell_values, cell_vols = tri_grid.get_values_at_cell_from_vtk(field="test")
+    cell_values, cell_vols = tri_grid.get_cell_values(field="test")
     assert np.dot(cell_values, cell_vols) == 1.5
 
     # Now repeat for a tet mesh
@@ -712,7 +712,6 @@ def test_cell_values():
     )
 
     tet_grid_cells = td.CellDataArray(
-        # [[0, 1, 2, 4], [1, 2, 7, 3], [1, 5, 7, 4], [2, 6, 4, 7], [4, 7, 2, 6], [0, 4, 7, 2]],
         [[0, 1, 3, 7], [0, 2, 7, 3], [0, 2, 6, 7], [0, 4, 7, 6], [0, 4, 5, 7], [0, 1, 7, 5]],
         dims=("cell_index", "vertex_index"),
     )
@@ -730,8 +729,8 @@ def test_cell_values():
     )
 
     with pytest.raises(ValueError):
-        _, _ = tet_grid.get_values_at_cell_from_vtk(field="bad_field_name")
+        _, _ = tet_grid.get_cell_values(field="bad_field_name")
     
 
-    cell_values, cell_vols = tet_grid.get_values_at_cell_from_vtk(field="test_tet")
+    cell_values, cell_vols = tet_grid.get_cell_values(field="test_tet")
     assert np.dot(cell_values, cell_vols) == 1.5

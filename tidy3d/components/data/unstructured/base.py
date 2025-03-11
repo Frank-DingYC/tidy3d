@@ -642,9 +642,8 @@ class UnstructuredGridDataset(Dataset, np.lib.mixins.NDArrayOperatorsMixin, ABC)
         return values
     
     @requires_vtk
-    def get_values_at_cell_from_vtk(
+    def get_cell_values(
         self,
-        # vtk_obj,
         field: str = None,
     ):
         """For a given field defined by "field", this returns the values 
