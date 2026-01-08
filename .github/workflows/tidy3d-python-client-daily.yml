@@ -1,10 +1,5 @@
 name: public/tidy3d/python-client-daily-run
 
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 5 * * *' # Runs at 5am UTC
-
 permissions:
   contents: read
 
